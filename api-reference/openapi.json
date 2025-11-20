@@ -7,8 +7,8 @@
   },
   "servers": [
     {
-      "url": "https://api.finster.ai",
-      "description": "Production server"
+      "url": "https://development-api.finster.ai",
+      "description": "Development server"
     }
   ],
   "security": [
