@@ -1,97 +1,74 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Welcome to the Finster API"
+description: "AI-powered queries and research for company data"
 ---
 
-## Setting up
+## Get Started
 
-Get your documentation site up and running in minutes.
+Build powerful applications with Finster's AI-powered API for querying company data sources.
 
 <Card
-  title="Start here"
+  title="Quickstart Guide"
   icon="rocket"
   href="/quickstart"
   horizontal
 >
-  Follow our three step quickstart guide.
+  Get up and running with the Finster API in minutes.
 </Card>
 
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
+## Features
 
 <Columns cols={2}>
   <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
+    title="Real-time Queries"
+    icon="bolt"
+    href="/api-reference/endpoint/queries"
   >
-    Edit your docs locally and preview them in real time.
+    Execute natural language queries and get instant AI-powered responses with citations.
   </Card>
   <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
+    title="Asynchronous Tasks"
+    icon="gears"
+    href="/api-reference/endpoint/tasks-execute"
   >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+    Submit research tasks that are processed in the background with comprehensive results.
   </Card>
   <Card
-    title="API documentation"
-    icon="terminal"
+    title="Multiple Data Sources"
+    icon="database"
     href="/api-reference/introduction"
   >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
-
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+    Access SEC filings, investor relations documents, industry research, and web search.
   </Card>
   <Card
-    title="Code samples"
+    title="Structured Responses"
     icon="code"
-    href="/essentials/code"
+    href="/api-reference/introduction"
   >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
+    Receive well-structured JSON responses with citations, source information, and metadata.
   </Card>
 </Columns>
 
-## Need inspiration?
+## API Endpoints
+
+### Queries
+Execute real-time queries against company data sources:
+- **POST** `/api/public/v1/queries` - Execute a query with streaming or single response
+
+### Tasks
+Manage asynchronous research and generation tasks:
+- **POST** `/api/public/v1/tasks/execute` - Submit a task for execution
+- **GET** `/api/public/v1/tasks/runs/{task_run_id}/status` - Check task status
+- **GET** `/api/public/v1/tasks/runs/{task_run_id}/result` - Retrieve task results
 
 <Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
+  title="View API Reference"
+  icon="terminal"
+  href="/api-reference/introduction"
 >
-  Browse our showcase of exceptional documentation sites.
+  Explore the complete API documentation with request/response examples.
 </Card>
+
+## Authentication
+
+All API endpoints require authentication using an API key provided in the `X-API-Key` header. See the [API Introduction](/api-reference/introduction) for details.

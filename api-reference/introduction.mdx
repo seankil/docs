@@ -1,33 +1,73 @@
 ---
 title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+description: 'Finster API documentation'
 ---
-
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
 
 ## Welcome
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+The Finster API allows you to execute natural language queries and tasks against company data sources using AI. This API provides access to:
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+- **Queries**: Execute real-time queries against SEC filings, investor relations documents, industry research, and web search
+- **Tasks**: Submit research and generation tasks that are processed asynchronously
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+All API endpoints require authentication using an API key provided in the `X-API-Key` header.
+
+```http
+X-API-Key: your_api_key_here
+```
+
+## Base URL
+
+```
+https://api.finster.ai
+```
+
+## Data Sources
+
+The following data sources are available for queries and tasks:
+
+- `SEC_FILINGS` - SEC filings and regulatory documents
+- `INVESTOR_RELATIONS_DOCUMENTS` - Investor relations materials
+- `INDUSTRY_RESEARCH` - Industry research reports
+- `WEB_SEARCH` - Web search results
+
+If no data sources are specified, all available sources will be searched.
+
+## Rate Limits
+
+Please refer to your API plan for rate limit information. If you exceed rate limits, you will receive a `429 Too Many Requests` response.
+
+## Error Handling
+
+The API uses standard HTTP status codes:
+
+- `200` - Success
+- `400` - Bad Request (invalid parameters)
+- `401` - Unauthorized (invalid or missing API key)
+- `404` - Not Found
+- `422` - Validation Error
+- `429` - Rate Limit Exceeded
+- `500` - Internal Server Error
+
+Error responses follow a consistent format:
 
 ```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+{
+  "errors": [
+    {
+      "code": 422,
+      "message": "Invalid data_sources: ['BAD_SOURCE']. Allowed: SEC_FILINGS, INVESTOR_RELATIONS_DOCUMENTS, INDUSTRY_RESEARCH, WEB_SEARCH"
+    }
+  ]
+}
+```
+
+Or for some endpoints:
+
+```json
+{
+  "detail": "Invalid or missing API key"
+}
 ```

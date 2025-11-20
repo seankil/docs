@@ -1,94 +1,234 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "OpenAPI Plant Store",
-    "description": "A sample API that uses a plant store as an example to demonstrate features in the OpenAPI specification",
-    "license": {
-      "name": "MIT"
-    },
+    "title": "Finster Public API",
+    "description": "Public API for executing queries and tasks against company data sources using AI",
     "version": "1.0.0"
   },
   "servers": [
     {
-      "url": "http://sandbox.mintlify.com"
+      "url": "https://api.finster.ai",
+      "description": "Production server"
     }
   ],
   "security": [
     {
-      "bearerAuth": []
+      "apiKeyAuth": []
     }
   ],
   "paths": {
-    "/plants": {
-      "get": {
-        "description": "Returns all plants from the system that the user has access to",
+    "/api/public/v1/queries": {
+      "post": {
+        "summary": "Finster Query Agent",
+        "description": "Execute natural language queries against company data sources using AI. Returns structured responses with citations and source information. Supports streaming (SSE) or single JSON response.",
+        "operationId": "executeQuery",
+        "tags": ["Queries"],
         "parameters": [
           {
-            "name": "limit",
+            "name": "user_id",
             "in": "query",
-            "description": "The maximum number of results to return",
+            "required": true,
+            "description": "Unique identifier for tracking",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string"
+            },
+            "example": "user_12345"
+          },
+          {
+            "name": "data_sources",
+            "in": "query",
+            "required": false,
+            "description": "Data sources to search. Can specify multiple by repeating parameter. If empty, all sources searched.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["SEC_FILINGS", "INVESTOR_RELATIONS_DOCUMENTS", "INDUSTRY_RESEARCH", "WEB_SEARCH"]
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "suggest_next_queries",
+            "in": "query",
+            "required": false,
+            "description": "Return suggested follow-up questions",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "stream",
+            "in": "query",
+            "required": false,
+            "description": "true = SSE stream, false = single JSON response",
+            "schema": {
+              "type": "boolean",
+              "default": false
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user_query": {
+                    "type": "string",
+                    "description": "Natural language question",
+                    "example": "What did Nestle say about organic growth of group sales since 2022 in their annual reports and presentations?"
+                  }
+                },
+                "required": ["user_query"]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Plant response",
+            "description": "Successful query response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Plant"
+                  "$ref": "#/components/schemas/QueryResponse"
+                },
+                "example": {
+                  "timestamp": "2025-04-09T10:10:21.186464+00:00",
+                  "id": "01KA0XG0J7JXBM05X0NQV7SWG0",
+                  "query_id": "01KA0XG12AHXMS687EJ6S6TK1KQ",
+                  "user_id": "user_12345",
+                  "session_id": "01JZ0XDZPA0Z9MQLSC76W1C0F8K",
+                  "agent": {
+                    "output": "There are no disclosures available ...",
+                    "input": "\"What did Nestle say about organic growth of group sales since 2022 in their annual reports and presentations?",
+                    "output_list": ["There are no disclosures available ..."],
+                    "plottable": {"get_sec_data": null},
+                    "citations": [],
+                    "source_info": null,
+                    "citations_llm_framework": "openai",
+                    "debug": {
+                      "agent_model": "gpt-4.1-2025-04-14",
+                      "function_calls_with_responses": [
+                        {
+                          "function_name": "get_sec_data",
+                          "function_args": {
+                            "query_str_list": ["organic growth of group sales", "pricing impact", "real internal growth", "RIG impact"],
+                            "include_filing_8k": false,
+                            "include_ipo_filings": false,
+                            "company_names": ["Nestle"],
+                            "start_date": "2022-01-01",
+                            "end_date": "2025-11-14"
+                          },
+                          "function_response": "There are no SEC filings that have the required data to your question."
+                        }
+                      ]
+                    },
+                    "extra": {"function_response_extras": [{"get_sec_data": {}}]},
+                    "misc": null,
+                    "history": []
                   }
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-Sent Events stream when stream=true"
                 }
               }
             }
           },
-          "400": {
-            "description": "Unexpected error",
+          "401": {
+            "description": "Invalid or missing API key",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": 401,
+                      "message": "Invalid or missing API key"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": 422,
+                      "message": "Invalid data_sources: ['BAD_SOURCE']. Allowed: SEC_FILINGS, INVESTOR_RELATIONS_DOCUMENTS, INDUSTRY_RESEARCH, WEB_SEARCH"
+                    }
+                  ]
+                }
                 }
               }
             }
           }
         }
       },
+    "/api/public/v1/tasks/execute": {
       "post": {
-        "description": "Creates a new plant in the store",
+        "summary": "Execute Task",
+        "description": "Submit a Task for execution. The task will be queued for processing. Use the returned task_run_id to check status and retrieve results.",
+        "operationId": "executeTask",
+        "tags": ["Tasks"],
         "requestBody": {
-          "description": "Plant to add to the store",
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewPlant"
+                "$ref": "#/components/schemas/TaskExecuteRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
-            "description": "plant response",
+            "description": "Task successfully queued",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Plant"
+                  "$ref": "#/components/schemas/TaskExecuteResponse"
                 }
               }
             }
           },
-          "400": {
-            "description": "unexpected error",
+          "401": {
+            "description": "Invalid or missing API key",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/ErrorDetail"
+                },
+                "example": {
+                  "detail": "Invalid or missing API key"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                },
+                "example": {
+                  "detail": "Internal server error"
                 }
               }
             }
@@ -96,57 +236,161 @@
         }
       }
     },
-    "/plants/{id}": {
-      "delete": {
-        "description": "Deletes a single plant based on the ID supplied",
+    "/api/public/v1/tasks/runs/{task_run_id}/status": {
+      "get": {
+        "summary": "Check Task Status",
+        "description": "Check the current status and progress of a task execution.",
+        "operationId": "getTaskStatus",
+        "tags": ["Tasks"],
         "parameters": [
           {
-            "name": "id",
+            "name": "task_run_id",
             "in": "path",
-            "description": "ID of plant to delete",
             "required": true,
+            "description": "Unique identifier for this task execution",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "description": "User identifier for authorization",
+            "schema": {
+              "type": "string"
             }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Plant deleted",
-            "content": {}
-          },
-          "400": {
-            "description": "unexpected error",
+          "200": {
+            "description": "Task status retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/TaskStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                },
+                "example": {
+                  "detail": "Task run not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
                 }
               }
             }
           }
         }
       }
-    }
-  },
-  "webhooks": {
-    "/plant/webhook": {
-      "post": {
-        "description": "Information about a new plant added to the store",
-        "requestBody": {
-          "description": "Plant added to the store",
-          "content": {
-            "application/json": {
+    },
+    "/api/public/v1/tasks/runs/{task_run_id}/result": {
+      "get": {
+        "summary": "Get Task Result",
+        "description": "Retrieve the complete results of a finished task execution.",
+        "operationId": "getTaskResult",
+        "tags": ["Tasks"],
+        "parameters": [
+          {
+            "name": "task_run_id",
+            "in": "path",
+            "required": true,
+            "description": "Unique identifier for this task execution",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "description": "User identifier for authorization",
               "schema": {
-                "$ref": "#/components/schemas/NewPlant"
-              }
+              "type": "string"
             }
           }
-        },
+        ],
         "responses": {
           "200": {
-            "description": "Return a 200 status to indicate that the data was received successfully"
+            "description": "Task result retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResultResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Task not complete yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                },
+                "example": {
+                  "detail": "Task is not complete yet. Current status: researching. Please check status endpoint."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                },
+                "example": {
+                  "detail": "Task run not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
           }
         }
       }
@@ -154,63 +398,299 @@
   },
   "components": {
     "schemas": {
-      "Plant": {
-        "required": [
-          "name"
-        ],
+      "QueryResponse": {
         "type": "object",
+        "required": ["timestamp", "id", "query_id", "user_id", "session_id", "agent"],
         "properties": {
-          "name": {
-            "description": "The name of the plant",
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
             "type": "string"
           },
-          "tag": {
-            "description": "Tag to specify the type",
+          "query_id": {
             "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "agent": {
+            "$ref": "#/components/schemas/AgentResponse"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AgentResponse": {
+        "type": "object",
+        "required": ["output", "input", "output_list"],
+        "properties": {
+          "output": {
+            "type": "string"
+          },
+          "input": {
+            "type": "string"
+          },
+          "output_list": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "plottable": {
+            "type": "object",
+            "properties": {
+              "get_sec_data": {
+                "nullable": true
+              }
+            },
+            "additionalProperties": true
+          },
+          "citations": {
+            "type": "array",
+            "items": {}
+          },
+          "source_info": {
+            "nullable": true
+          },
+          "citations_llm_framework": {
+            "type": "string"
+          },
+          "debug": {
+            "type": "object",
+            "properties": {
+              "agent_model": {
+                "type": "string"
+              },
+              "function_calls_with_responses": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "function_name": {
+                      "type": "string"
+                    },
+                    "function_args": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "function_response": {}
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": true
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "misc": {
+            "nullable": true
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "function_calls": {
+                  "nullable": true
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "TaskExecuteRequest": {
+        "type": "object",
+        "required": ["user_id", "task_description"],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "Unique identifier for tracking",
+            "example": "user_12345"
+          },
+          "task_description": {
+            "type": "string",
+            "description": "Description of what you want to research and generate",
+            "example": "Analyze Tesla's Q4 2024 earnings performance compared to analyst expectations"
+          },
+          "research_focus": {
+            "type": "string",
+            "nullable": true,
+            "description": "Companies or topics to focus on (optional, can be inferred from description)",
+            "example": "Tesla, Inc."
+          },
+          "data_sources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["SEC_FILINGS", "INVESTOR_RELATIONS_DOCUMENTS", "INDUSTRY_RESEARCH", "WEB_SEARCH"]
+            },
+            "default": [],
+            "description": "Data sources to search. If empty, all sources will be searched."
+          },
+          "output_format": {
+            "type": "string",
+            "enum": ["summary", "detailed", "slides"],
+            "default": "detailed",
+            "description": "Format of the output: summary (concise), detailed (comprehensive), or slides (presentation)"
+          },
+          "custom_instructions": {
+            "type": "string",
+            "nullable": true,
+            "description": "Additional instructions for output formatting",
+            "example": ""
           }
         }
       },
-      "NewPlant": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Plant"
+      "TaskExecuteResponse": {
+        "type": "object",
+        "required": ["task_run_id", "status", "estimated_duration_seconds", "message"],
+        "properties": {
+          "task_run_id": {
+            "type": "string",
+            "description": "Unique identifier for this task execution"
           },
-          {
-            "required": [
-              "id"
-            ],
+          "status": {
+            "type": "string",
+            "enum": ["queued", "researching", "generating", "complete", "failed"],
+            "description": "Current status of the task"
+          },
+          "estimated_duration_seconds": {
+            "type": "integer",
+            "description": "Estimated time to completion in seconds"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable status message"
+          }
+        }
+      },
+      "TaskStatusResponse": {
+        "type": "object",
+        "required": ["task_run_id", "status", "created_at"],
+        "properties": {
+          "task_run_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["queued", "researching", "generating", "complete", "failed"],
+            "description": "Current status of the task"
+          },
+          "progress": {
+            "type": "string",
+            "nullable": true,
+            "description": "Progress indicator (e.g., '3/5 steps completed')"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "completed_at": {
+            "type": "string",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "TaskResultResponse": {
+        "type": "object",
+        "required": ["task_run_id", "status", "output", "output_sections", "citations"],
+        "properties": {
+          "task_run_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["queued", "researching", "generating", "complete", "failed"]
+          },
+          "output": {
+            "type": "string",
+            "description": "The generated report or analysis"
+          },
+          "output_sections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Output broken into sections"
+          },
+          "plan": {
             "type": "object",
-            "properties": {
-              "id": {
-                "description": "Identification number of the plant",
-                "type": "integer",
-                "format": "int64"
+            "nullable": true,
+            "description": "Research plan that was executed",
+            "additionalProperties": true
+          },
+          "citations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "description": "Source citations",
+            "default": []
+          },
+          "duration_seconds": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["errors"],
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["code", "message"],
+              "properties": {
+                "code": {
+                  "type": "integer",
+                  "example": 401
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Invalid or missing API key"
+                }
               }
             }
           }
-        ]
+        },
+        "additionalProperties": false
       },
-      "Error": {
-        "required": [
-          "error",
-          "message"
-        ],
+      "ErrorDetail": {
         "type": "object",
         "properties": {
-          "error": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "message": {
+          "detail": {
             "type": "string"
           }
         }
       }
     },
     "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer"
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key authentication"
       }
     }
   }

@@ -1,0 +1,6 @@
+---
+title: 'Get Task Result'
+openapi: 'GET /api/public/v1/tasks/runs/{task_run_id}/result'
+---
+
+Retrieve the complete results of a finished task execution. Only returns results when status is 'complete'. If task is still running, use the status endpoint to check progress.
